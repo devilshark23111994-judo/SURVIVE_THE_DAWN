@@ -1,38 +1,65 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Squad setup with custom tactical positions
+// 5 Squad members
 let squad = [
     { id: 0, name: "Boss (Self)", x: 400, y: 140, active: true, color: "#00ffcc" },
-    { id: 1, name: "Rohit", x: 350, y: 120, active: true, color: "#ffcc00" },
-    { id: 2, name: "Kabir", x: 450, y: 120, active: true, color: "#ffcc00" },
-    { id: 3, name: "Tanya", x: 350, y: 180, active: true, color: "#ffcc00" },
-    { id: 4, name: "Sneha", x: 450, y: 180, active: true, color: "#ffcc00" }
+    { id: 1, name: "Rohit", x: 350, y: 110, active: true, color: "#ffcc00" },
+    { id: 2, name: "Kabir", x: 450, y: 110, active: true, color: "#ffcc00" },
+    { id: 3, name: "Tanya", x: 350, y: 190, active: true, color: "#ffcc00" },
+    { id: 4, name: "Sneha", x: 450, y: 190, active: true, color: "#ffcc00" }
 ];
 
 let controlledIndex = 0;
 let car = { x: 400, y: 150, repair: 0 };
-let monster = { x: 100, y: 60, speed: 1.0 };
+let monster = { x: 100, y: 60, speed: 0.9 };
 let radiationBlobs = [];
 let trees = [
-    {x: 100, y: 40}, {x: 250, y: 200}, {x: 600, y: 50}, {x: 700, y: 190}, {x: 200, y: 100}, {x: 650, y: 120}
+    {x: 90, y: 40}, {x: 240, y: 210}, {x: 610, y: 45}, {x: 710, y: 200}, {x: 180, y: 120}, {x: 640, y: 130}
 ];
 
 let gameTime = 120;
 let isGameOver = false;
 
-// Smooth movement controls
-function movePlayer(dir) {
+// Touch Drag Joystick Variables
+let touchStartX = 0;
+let touchStartY = 0;
+let isTouching = false;
+
+window.addEventListener('touchstart', (e) => {
     if (isGameOver) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isTouching = true;
+});
+
+window.addEventListener('touchmove', (e) => {
+    if (!isTouching || isGameOver) return;
+    let touchX = e.touches[0].clientX;
+    let touchY = e.touches[0].clientY;
+
+    let dx = touchX - touchStartX;
+    let dy = touchY - touchStartY;
+
     let curr = squad[controlledIndex];
     if (!curr.active) return;
 
-    const step = 18;
-    if (dir === 'UP' && curr.y > 25) curr.y -= step;
-    if (dir === 'DOWN' && curr.y < canvas.height - 25) curr.y += step;
-    if (dir === 'LEFT' && curr.x > 25) curr.x -= step;
-    if (dir === 'RIGHT' && curr.x < canvas.width - 25) curr.x += step;
-}
+    let speed = 2.5;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        curr.x += (dx > 0 ? speed : -speed);
+        curr.y += (dy > 0 ? speed : -speed);
+
+        // Boundary checks
+        if (curr.x < 20) curr.x = 20;
+        if (curr.x > canvas.width - 20) curr.x = canvas.width - 20;
+        if (curr.y < 20) curr.y = 20;
+        if (curr.y > canvas.height - 20) curr.y = canvas.height - 20;
+    }
+});
+
+window.addEventListener('touchend', () => {
+    isTouching = false;
+});
 
 // Switch control between squad members
 function switchCharacter() {
@@ -57,7 +84,7 @@ function performAction() {
     let curr = squad[controlledIndex];
     let dist = Math.hypot(curr.x - car.x, curr.y - car.y);
     
-    if (dist < 50) {
+    if (dist < 45) {
         car.repair += 10;
         document.getElementById("repair-progress").innerText = car.repair + "%";
         
@@ -67,7 +94,7 @@ function performAction() {
     }
 }
 
-// Advanced Monster AI & Threat Mechanics
+// Monster AI & Mechanics
 function updateMonster() {
     if (isGameOver) return;
     
@@ -77,7 +104,6 @@ function updateMonster() {
         return;
     }
 
-    // Target closest member
     let target = activeMembers[0];
     let minDst = Math.hypot(target.x - monster.x, target.y - monster.y);
     activeMembers.forEach(m => {
@@ -88,15 +114,13 @@ function updateMonster() {
         }
     });
 
-    // Smooth pursuit
     if (monster.x < target.x) monster.x += monster.speed;
     if (monster.x > target.x) monster.x -= monster.speed;
     if (monster.y < target.y) monster.y += monster.speed;
     if (monster.y > target.y) monster.y -= monster.speed;
 
-    // Eliminate close member
     activeMembers.forEach(m => {
-        if (Math.hypot(m.x - monster.x, m.y - monster.y) < 22) {
+        if (Math.hypot(m.x - monster.x, m.y - monster.y) < 20) {
             m.active = false;
             m.color = "#333333";
             if (squad[controlledIndex].id === m.id) {
@@ -113,17 +137,17 @@ function updateMonster() {
     }
 
     // Radiation blob attack on car
-    if (Math.random() < 0.025) {
+    if (Math.random() < 0.02) {
         radiationBlobs.push({ x: monster.x, y: monster.y, targetX: car.x, targetY: car.y });
     }
 
     radiationBlobs.forEach((blob, index) => {
         let dx = blob.targetX - blob.x;
         let dy = blob.targetY - blob.y;
-        blob.x += dx * 0.06;
-        blob.y += dy * 0.06;
+        blob.x += dx * 0.05;
+        blob.y += dy * 0.05;
 
-        if (Math.hypot(blob.x - car.x, blob.y - car.y) < 25) {
+        if (Math.hypot(blob.x - car.x, blob.y - car.y) < 22) {
             if (car.repair > 0) car.repair -= 5;
             document.getElementById("repair-progress").innerText = car.repair + "%";
             radiationBlobs.splice(index, 1);
@@ -131,43 +155,41 @@ function updateMonster() {
     });
 }
 
-// Atmospheric Rendering Loop
+// Game Rendering Loop
 function gameLoop() {
     if (isGameOver) return;
 
-    // Dark Forest Background
     ctx.fillStyle = "#050a05";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw Forest Trees (Environmental Details)
+    // Trees
     ctx.fillStyle = "#0d1a0d";
     trees.forEach(t => {
         ctx.beginPath();
-        ctx.arc(t.x, t.y, 18, 0, Math.PI * 2);
+        ctx.arc(t.x, t.y, 16, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = "#1b331b";
         ctx.lineWidth = 2;
         ctx.stroke();
     });
 
-    // Draw Wrecked Car with Glow
-    ctx.shadowBlur = 15;
+    // Car
+    ctx.shadowBlur = 12;
     ctx.shadowColor = car.repair >= 100 ? "#00ff00" : "#ff3300";
     ctx.fillStyle = car.repair >= 100 ? "#114411" : "#441111";
-    ctx.fillRect(car.x - 30, car.y - 15, 60, 30);
+    ctx.fillRect(car.x - 26, car.y - 13, 52, 26);
     ctx.strokeStyle = car.repair >= 100 ? "#00ff00" : "#ff3300";
     ctx.lineWidth = 2;
-    ctx.strokeRect(car.x - 30, car.y - 15, 60, 30);
-    ctx.shadowBlur = 0; // Reset shadow
+    ctx.strokeRect(car.x - 26, car.y - 13, 52, 26);
+    ctx.shadowBlur = 0;
 
-    // Draw Squad Members
+    // Squad
     squad.forEach(member => {
         if (member.active) {
             ctx.fillStyle = member.color;
             ctx.beginPath();
             ctx.arc(member.x, member.y, 10, 0, Math.PI * 2);
             ctx.fill();
-            // Outer ring for active selection highlight
             if (member.id === squad[controlledIndex].id) {
                 ctx.strokeStyle = "#ffffff";
                 ctx.lineWidth = 2;
@@ -176,29 +198,29 @@ function gameLoop() {
         }
     });
 
-    // Draw Mutant (Glowing Threat)
-    ctx.shadowBlur = 20;
+    // Monster
+    ctx.shadowBlur = 18;
     ctx.shadowColor = "#9900ff";
     ctx.fillStyle = "#5500aa";
     ctx.beginPath();
-    ctx.arc(monster.x, monster.y, 16, 0, Math.PI * 2);
+    ctx.arc(monster.x, monster.y, 15, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Draw Neon Cyan Radiation Blobs
-    ctx.shadowBlur = 10;
+    // Radiation Blobs
+    ctx.shadowBlur = 8;
     ctx.shadowColor = "#00ffff";
     ctx.fillStyle = "#00ffff";
     radiationBlobs.forEach(blob => {
         ctx.beginPath();
-        ctx.arc(blob.x, blob.y, 6, 0, Math.PI * 2);
+        ctx.arc(blob.x, blob.y, 5, 0, Math.PI * 2);
         ctx.fill();
     });
     ctx.shadowBlur = 0;
 
     updateMonster();
 
-    gameTime -= 0.04;
+    gameTime -= 0.035;
     let mins = Math.floor(gameTime / 60);
     let secs = Math.floor(gameTime % 60);
     document.getElementById("time-display").innerText = `0${mins}:${secs < 10 ? '0' : ''}${secs} AM`;
@@ -210,14 +232,14 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Highway Escape & Sad Twist Ending
+// Highway Escape & Sad Ending
 function triggerHighwayEscape() {
     isGameOver = true;
     setTimeout(() => {
         document.getElementById("ending-screen").classList.remove("hidden");
         document.getElementById("ending-title").innerText = "THE HIGHWAY TRAGEDY";
         document.getElementById("ending-msg").innerText = "Sabhi dost gaadi mein baithkar highway par nikal pade. Subah ki pehli kiran aate hi achanak gaadi ke andar excess radiation fail gayi, steering lock ho gaya aur gaadi ek bhayanak ped se takra kar crash ho gayi...\n\n(Background mein ek dardnak sad music baj raha hai)";
-    }, 1000);
+    }, 800);
 }
 
 function triggerGameOver(reason) {
@@ -227,5 +249,4 @@ function triggerGameOver(reason) {
     document.getElementById("ending-msg").innerText = reason;
 }
 
-// Start game
 gameLoop();
