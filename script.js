@@ -1,27 +1,98 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+// Three.js 3D Setup
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x040804);
+scene.fog = new THREE.FogExp2(0x040804, 0.035);
 
-// Load the uploaded meme image as the player sprite
-const playerImg = new Image();
-playerImg.src = '1000011853.jpg'; // Aapki uploaded photo
+const camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 1000);
+camera.position.set(0, 18, 14);
+camera.lookAt(0, 0, -2);
 
-// Squad setup
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0x223322, 1.5);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0x44aa88, 1.2);
+dirLight.position.set(10, 20, 10);
+scene.add(dirLight);
+
+// Ground plane
+const groundGeo = new THREE.PlaneGeometry(50, 50);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x0a140a, roughness: 0.9 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+
+// Load Meme Texture for Player Character
+const textureLoader = new THREE.TextureLoader();
+let memeTexture = textureLoader.load('1000011853.jpg');
+
+// Squad setup in 3D (mapping x to x, y to -z)
 let squad = [
-    { id: 0, name: "Boss (Meme)", x: 400, y: 150, active: true, color: "#00ffcc" },
-    { id: 1, name: "Rohit", x: 260, y: 90, active: true, color: "#ffea00" },
-    { id: 2, name: "Kabir", x: 540, y: 100, active: true, color: "#ffea00" },
-    { id: 3, name: "Tanya", x: 230, y: 200, active: true, color: "#ffea00" },
-    { id: 4, name: "Sneha", x: 570, y: 210, active: true, color: "#ffea00" }
+    { id: 0, name: "Boss (Meme)", x: 0, z: 2, active: true, color: 0x00ffcc },
+    { id: 1, name: "Rohit", x: -4, z: -2, active: true, color: 0xffea00 },
+    { id: 2, name: "Kabir", x: 4, z: -1, active: true, color: 0xffea00 },
+    { id: 3, name: "Tanya", x: -5, z: 4, active: true, color: 0xffea00 },
+    { id: 4, name: "Sneha", x: 5, z: 5, active: true, color: 0xffea00 }
 ];
 
 let controlledIndex = 0;
-let car = { x: 400, y: 150, repair: 0 };
-let monster = { x: 100, y: 50, speed: 0.8 };
+let car = { x: 0, z: 2, repair: 0 };
+let monster = { x: -8, z: -6, speed: 0.05 };
 let radiationBlobs = [];
 
+// Create 3D meshes for squad members
+let squadMeshes = [];
+squad.forEach((m, idx) => {
+    let mat;
+    if (idx === 0) {
+        mat = new THREE.MeshBasicMaterial({ map: memeTexture, side: THREE.DoubleSide });
+    } else {
+        mat = new THREE.MeshStandardMaterial({ color: m.color, emissive: m.color, emissiveIntensity: 0.5 });
+    }
+    let geo = new THREE.PlaneGeometry(1.8, 1.8);
+    let mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(m.x, 0.9, m.z);
+    scene.add(mesh);
+    squadMeshes.push(mesh);
+});
+
+// Create 3D Wrecked Car
+let carGeo = new THREE.BoxGeometry(3.2, 1.2, 1.8);
+let carMat = new THREE.MeshStandardMaterial({ color: 0x3d0f0f, roughness: 0.5 });
+let carMesh = new THREE.Mesh(carGeo, carMat);
+carMesh.position.set(car.x, 0.6, car.z);
+scene.add(carMesh);
+
+// Create 3D Monster
+let monsterGeo = new THREE.SphereGeometry(1.1, 16, 16);
+let monsterMat = new THREE.MeshStandardMaterial({ color: 0x8800cc, emissive: 0x440088, roughness: 0.3 });
+let monsterMesh = new THREE.Mesh(monsterGeo, monsterMat);
+monsterMesh.position.set(monster.x, 1.1, monster.z);
+scene.add(monsterMesh);
+
+// Create 3D Trees
 let trees = [
-    {x: 80, y: 50}, {x: 200, y: 220}, {x: 620, y: 60}, {x: 720, y: 210}, {x: 160, y: 130}, {x: 650, y: 140}
+    {x: -6, z: -4}, {x: -3, z: 6}, {x: 7, z: -5}, {x: 8, z: 4}, {x: -8, z: 1}, {x: 6, z: 0}
 ];
+trees.forEach(t => {
+    let trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 2, 8);
+    let trunkMat = new THREE.MeshStandardMaterial({ color: 0x1b2d1b });
+    let trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.set(t.x, 1, t.z);
+    scene.add(trunk);
+
+    let leavesGeo = new THREE.ConeGeometry(1.2, 2.5, 8);
+    let leavesMat = new THREE.MeshStandardMaterial({ color: 0x0e220e });
+    let leaves = new THREE.Mesh(leavesGeo, leavesMat);
+    leaves.position.set(t.x, 2.8, t.z);
+    scene.add(leaves);
+});
 
 let gameTime = 120;
 let isGameOver = false;
@@ -49,15 +120,16 @@ window.addEventListener('touchmove', (e) => {
     let curr = squad[controlledIndex];
     if (!curr.active) return;
 
-    let speed = 2.2;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-        curr.x += (dx > 0 ? speed : -speed);
-        curr.y += (dy > 0 ? speed : -speed);
+    let speed = 0.05;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        curr.x += (dx > 0 ? speed : -speed) * 1.5;
+        curr.z += (dy > 0 ? speed : -speed) * 1.5;
 
-        if (curr.x < 15) curr.x = 15;
-        if (curr.x > canvas.width - 15) curr.x = canvas.width - 15;
-        if (curr.y < 25) curr.y = 25;
-        if (curr.y > canvas.height - 15) curr.y = canvas.height - 15;
+        // Boundaries
+        if (curr.x < -9) curr.x = -9;
+        if (curr.x > 9) curr.x = 9;
+        if (curr.z < -7) curr.z = -7;
+        if (curr.z > 7) curr.z = 7;
     }
 });
 
@@ -76,12 +148,17 @@ function switchCharacter() {
 function performAction() {
     if (isGameOver) return;
     let curr = squad[controlledIndex];
-    let dist = Math.hypot(curr.x - car.x, curr.y - car.y);
+    let dist = Math.hypot(curr.x - car.x, curr.z - car.z);
     
-    if (dist < 40) {
+    if (dist < 3.0) {
         car.repair += 10;
         document.getElementById("repair-progress").innerText = car.repair + "%";
         
+        // Change car color on repair progress
+        carMat.color.setHex(car.repair >= 100 ? 0x0f3d0f : 0x3d0f0f);
+        carMat.emissive.setHex(car.repair >= 100 ? 0x00ff00 : 0xff3300);
+        carMat.emissiveIntensity = 0.4;
+
         if (car.repair >= 100) {
             triggerHighwayEscape();
         }
@@ -97,31 +174,44 @@ function updateMonster() {
         return;
     }
 
-    let target = activeMembers[0];
-    let minDst = Math.hypot(target.x - monster.x, target.y - monster.y);
-    activeMembers.forEach(m => {
-        let d = Math.hypot(m.x - monster.x, m.y - monster.y);
-        if (d < minDst) {
-            minDst = d;
-            target = m;
-        }
-    });
-
+    let target = squad[controlledIndex].active ? squad[controlledIndex] : activeMembers[0];
+    
     if (monster.x < target.x) monster.x += monster.speed;
     if (monster.x > target.x) monster.x -= monster.speed;
-    if (monster.y < target.y) monster.y += monster.speed;
-    if (monster.y > target.y) monster.y -= monster.speed;
+    if (monster.z < target.z) monster.z += monster.speed;
+    if (monster.z > target.z) monster.z -= monster.speed;
 
+    monsterMesh.position.set(monster.x, 1.1, monster.z);
+
+    // AI movement for inactive members & collision check with monster
     squad.forEach((m, idx) => {
         if (m.active && idx !== controlledIndex) {
-            m.x += (Math.random() - 0.5) * 1.0;
-            m.y += (Math.random() - 0.5) * 1.0;
+            m.x += (Math.random() - 0.5) * 0.03;
+            m.z += (Math.random() - 0.5) * 0.03;
         }
 
-        if (Math.hypot(m.x - monster.x, m.y - monster.y) < 18) {
+        let distToMonster = Math.hypot(m.x - monster.x, m.z - monster.z);
+        if (distToMonster < 1.2 && m.active) {
             m.active = false;
-            if (squad[controlledIndex].id === m.id) {
+            squadMeshes[idx].visible = false;
+            if (controlledIndex === idx) {
                 switchCharacter();
+            }
+        }
+
+        // Update 3D mesh positions
+        squadMeshes[idx].position.set(m.x, 0.9, m.z);
+        
+        // Billboard effect: Make 3D character planes face the camera
+        squadMeshes[idx].quaternion.copy(camera.quaternion);
+
+        // Horror Jumpscare red tint effect when monster gets close to Boss meme face
+        if (idx === 0 && m.active) {
+            let distToM = Math.hypot(m.x - monster.x, m.z - monster.z);
+            if (distToM < 4.0) {
+                squadMeshes[0].material.color.setHex(0xff3355); // Scary red flash
+            } else {
+                squadMeshes[0].material.color.setHex(0xffffff); // Normal color
             }
         }
     });
@@ -132,142 +222,12 @@ function updateMonster() {
     if (aliveCount === 0) {
         triggerGameOver("Sabhi 5 dost mutant ka shikar ho gaye...");
     }
-
-    if (Math.random() < 0.02) {
-        radiationBlobs.push({ x: monster.x, y: monster.y, targetX: car.x, targetY: car.y });
-    }
-
-    radiationBlobs.forEach((blob, index) => {
-        let dx = blob.targetX - blob.x;
-        let dy = blob.targetY - blob.y;
-        blob.x += dx * 0.05;
-        blob.y += dy * 0.05;
-
-        if (Math.hypot(blob.x - car.x, blob.y - car.y) < 20) {
-            if (car.repair > 0) car.repair -= 5;
-            document.getElementById("repair-progress").innerText = car.repair + "%";
-            radiationBlobs.splice(index, 1);
-        }
-    });
 }
 
-// Rendering Loop with Y-Sorting & Dynamic Horror Jumpscare Effect on Meme Face
-function gameLoop() {
+// 3D Game Loop
+function animate() {
     if (isGameOver) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    let renderQueue = [];
-
-    trees.forEach(t => {
-        renderQueue.push({ type: 'tree', y: t.y, x: t.x });
-    });
-
-    renderQueue.push({ type: 'car', y: car.y, x: car.x });
-
-    squad.forEach(m => {
-        if (m.active) {
-            renderQueue.push({ type: 'player', y: m.y, x: m.x, color: m.color, id: m.id });
-        }
-    });
-
-    renderQueue.push({ type: 'monster', y: monster.y, x: monster.x });
-
-    renderQueue.sort((a, b) => a.y - b.y);
-
-    renderQueue.forEach(obj => {
-        if (obj.type === 'tree') {
-            ctx.fillStyle = "rgba(0,0,0,0.4)";
-            ctx.beginPath();
-            ctx.ellipse(obj.x, obj.y + 6, 12, 6, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = "#0e1f0e";
-            ctx.beginPath();
-            ctx.arc(obj.x, obj.y, 14, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = "#1b381b";
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-        } 
-        else if (obj.type === 'car') {
-            ctx.fillStyle = "rgba(0,0,0,0.5)";
-            ctx.fillRect(obj.x - 24, obj.y - 6, 48, 14);
-
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = car.repair >= 100 ? "#00ff00" : "#ff3300";
-            ctx.fillStyle = car.repair >= 100 ? "#0f3d0f" : "#3d0f0f";
-            ctx.fillRect(obj.x - 22, obj.y - 12, 44, 20);
-            ctx.strokeStyle = car.repair >= 100 ? "#00ff00" : "#ff3300";
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(obj.x - 22, obj.y - 12, 44, 20);
-            ctx.shadowBlur = 0;
-        } 
-        else if (obj.type === 'player') {
-            ctx.fillStyle = "rgba(0,0,0,0.5)";
-            ctx.beginPath();
-            ctx.ellipse(obj.x, obj.y + 4, 8, 4, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Check distance to monster to trigger scary horror red flash / glitch on the face
-            let distToMonster = Math.hypot(obj.x - monster.x, obj.y - monster.y);
-            let isScared = distToMonster < 90;
-
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(obj.x, obj.y, 14, 0, Math.PI * 2);
-            ctx.closePath();
-            ctx.clip();
-
-            if (isScared) {
-                // Horror jump-scare tint (Red glowing eerie effect)
-                ctx.fillStyle = "#ff0033";
-                ctx.fillRect(obj.x - 14, obj.y - 14, 28, 28);
-            }
-
-            // Draw user's meme photo cropped circularly as the character face
-            if (playerImg.complete && playerImg.naturalWidth !== 0) {
-                ctx.drawImage(playerImg, obj.x - 14, obj.y - 14, 28, 28);
-            } else {
-                ctx.fillStyle = obj.color;
-                ctx.fillRect(obj.x - 10, obj.y - 10, 20, 20);
-            }
-            ctx.restore();
-
-            // Ring around active player
-            if (obj.id === squad[controlledIndex].id) {
-                ctx.strokeStyle = isScared ? "#ff0000" : "#ffffff";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(obj.x, obj.y, 16, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        } 
-        else if (obj.type === 'monster') {
-            ctx.fillStyle = "rgba(0,0,0,0.6)";
-            ctx.beginPath();
-            ctx.ellipse(obj.x, obj.y + 5, 8, 4, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "#9900ff";
-            ctx.fillStyle = "#8800cc";
-            ctx.beginPath();
-            ctx.arc(obj.x, obj.y, 9, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-        }
-    });
-
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = "#00ffff";
-    ctx.fillStyle = "#00ffff";
-    radiationBlobs.forEach(blob => {
-        ctx.beginPath();
-        ctx.arc(blob.x, blob.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-    });
-    ctx.shadowBlur = 0;
+    requestAnimationFrame(animate);
 
     updateMonster();
 
@@ -280,7 +240,7 @@ function gameLoop() {
         triggerGameOver("Subah ho gayi aur gaadi fix nahi hui! Radiation ne sabko nigal liya.");
     }
 
-    requestAnimationFrame(gameLoop);
+    renderer.render(scene, camera);
 }
 
 function triggerHighwayEscape() {
@@ -299,4 +259,4 @@ function triggerGameOver(reason) {
     document.getElementById("ending-msg").innerText = reason;
 }
 
-gameLoop();
+animate();
