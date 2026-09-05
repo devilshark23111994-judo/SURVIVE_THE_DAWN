@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SURVIVE_THE_DAWN</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- UI Header -->
+        <div id="ui-hud">
+            <div>Time: <span id="time-display">02:00 AM</span></div>
+            <div>Car Repair: <span id="repair-progress">0%</span></div>
+            <div>Lives / Squad: <span id="squad-status">5 / 5 Alive</span></div>
+        </div>
+
+        <!-- Game Canvas (Landscape View) -->
+        <canvas id="gameCanvas" width="800" height="250"></canvas>
+
+        <!-- Mobile Touch Controls & Switcher -->
+        <div id="controls-bar">
+            <div id="joystick-zone">
+                <button class="ctrl-btn" onclick="movePlayer('UP')">⬆️</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="ctrl-btn" onclick="movePlayer('LEFT')">⬅️</button>
+                    <button class="ctrl-btn" onclick="movePlayer('RIGHT')">➡️</button>
+                </div>
+                <button class="ctrl-btn" onclick="movePlayer('DOWN')">⬇️</button>
+            </div>
+            
+            <div id="switch-zone">
+                <button id="switch-btn" onclick="switchCharacter()">🔄 SWITCH PLAYER</button>
+            </div>
+
+            <div id="action-zone">
+                <button id="action-btn" onclick="performAction()">🛠️ FIX CAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cinematic / Ending Overlay -->
+    <div id="ending-screen" class="hidden">
+        <h1 id="ending-title">THE END</h1>
+        <p id="ending-msg">Gaadi highway par pahunchi, par excess radiation ki wajah se achanak control khogyi aur ek bhayanak crash ho gaya...</p>
+        <p style="color: #00ffcc; font-weight: bold; margin-top: 20px;">Thanks for Playing, Boss!</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
