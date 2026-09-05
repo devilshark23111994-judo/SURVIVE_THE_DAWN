@@ -1,27 +1,32 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// 5 Squad members
+// Load the uploaded meme image as the player sprite
+const playerImg = new Image();
+playerImg.src = '1000011853.jpg'; // Aapki uploaded photo
+
+// Squad setup
 let squad = [
-    { id: 0, name: "Boss (Self)", x: 400, y: 140, active: true, color: "#00ffcc" },
-    { id: 1, name: "Rohit", x: 350, y: 110, active: true, color: "#ffcc00" },
-    { id: 2, name: "Kabir", x: 450, y: 110, active: true, color: "#ffcc00" },
-    { id: 3, name: "Tanya", x: 350, y: 190, active: true, color: "#ffcc00" },
-    { id: 4, name: "Sneha", x: 450, y: 190, active: true, color: "#ffcc00" }
+    { id: 0, name: "Boss (Meme)", x: 400, y: 150, active: true, color: "#00ffcc" },
+    { id: 1, name: "Rohit", x: 260, y: 90, active: true, color: "#ffea00" },
+    { id: 2, name: "Kabir", x: 540, y: 100, active: true, color: "#ffea00" },
+    { id: 3, name: "Tanya", x: 230, y: 200, active: true, color: "#ffea00" },
+    { id: 4, name: "Sneha", x: 570, y: 210, active: true, color: "#ffea00" }
 ];
 
 let controlledIndex = 0;
 let car = { x: 400, y: 150, repair: 0 };
-let monster = { x: 100, y: 60, speed: 0.9 };
+let monster = { x: 100, y: 50, speed: 0.8 };
 let radiationBlobs = [];
+
 let trees = [
-    {x: 90, y: 40}, {x: 240, y: 210}, {x: 610, y: 45}, {x: 710, y: 200}, {x: 180, y: 120}, {x: 640, y: 130}
+    {x: 80, y: 50}, {x: 200, y: 220}, {x: 620, y: 60}, {x: 720, y: 210}, {x: 160, y: 130}, {x: 650, y: 140}
 ];
 
 let gameTime = 120;
 let isGameOver = false;
 
-// Touch Drag Joystick Variables
+// Touch Drag Controls
 let touchStartX = 0;
 let touchStartY = 0;
 let isTouching = false;
@@ -44,16 +49,15 @@ window.addEventListener('touchmove', (e) => {
     let curr = squad[controlledIndex];
     if (!curr.active) return;
 
-    let speed = 2.5;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    let speed = 2.2;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
         curr.x += (dx > 0 ? speed : -speed);
         curr.y += (dy > 0 ? speed : -speed);
 
-        // Boundary checks
-        if (curr.x < 20) curr.x = 20;
-        if (curr.x > canvas.width - 20) curr.x = canvas.width - 20;
-        if (curr.y < 20) curr.y = 20;
-        if (curr.y > canvas.height - 20) curr.y = canvas.height - 20;
+        if (curr.x < 15) curr.x = 15;
+        if (curr.x > canvas.width - 15) curr.x = canvas.width - 15;
+        if (curr.y < 25) curr.y = 25;
+        if (curr.y > canvas.height - 15) curr.y = canvas.height - 15;
     }
 });
 
@@ -61,30 +65,20 @@ window.addEventListener('touchend', () => {
     isTouching = false;
 });
 
-// Switch control between squad members
 function switchCharacter() {
     if (isGameOver) return;
     let startIndex = controlledIndex;
     do {
         controlledIndex = (controlledIndex + 1) % squad.length;
     } while (!squad[controlledIndex].active && controlledIndex !== startIndex);
-
-    squad.forEach((m, idx) => {
-        if (idx === controlledIndex) {
-            m.color = "#00ffcc";
-        } else if (m.active) {
-            m.color = "#ffcc00";
-        }
-    });
 }
 
-// Fix car action
 function performAction() {
     if (isGameOver) return;
     let curr = squad[controlledIndex];
     let dist = Math.hypot(curr.x - car.x, curr.y - car.y);
     
-    if (dist < 45) {
+    if (dist < 40) {
         car.repair += 10;
         document.getElementById("repair-progress").innerText = car.repair + "%";
         
@@ -94,7 +88,6 @@ function performAction() {
     }
 }
 
-// Monster AI & Mechanics
 function updateMonster() {
     if (isGameOver) return;
     
@@ -119,10 +112,14 @@ function updateMonster() {
     if (monster.y < target.y) monster.y += monster.speed;
     if (monster.y > target.y) monster.y -= monster.speed;
 
-    activeMembers.forEach(m => {
-        if (Math.hypot(m.x - monster.x, m.y - monster.y) < 20) {
+    squad.forEach((m, idx) => {
+        if (m.active && idx !== controlledIndex) {
+            m.x += (Math.random() - 0.5) * 1.0;
+            m.y += (Math.random() - 0.5) * 1.0;
+        }
+
+        if (Math.hypot(m.x - monster.x, m.y - monster.y) < 18) {
             m.active = false;
-            m.color = "#333333";
             if (squad[controlledIndex].id === m.id) {
                 switchCharacter();
             }
@@ -130,13 +127,12 @@ function updateMonster() {
     });
 
     let aliveCount = squad.filter(m => m.active).length;
-    document.getElementById("squad-status").innerText = `${aliveCount} / 5 Alive`;
+    document.getElementById("squad-status").innerText = `${aliveCount} / 5`;
 
     if (aliveCount === 0) {
         triggerGameOver("Sabhi 5 dost mutant ka shikar ho gaye...");
     }
 
-    // Radiation blob attack on car
     if (Math.random() < 0.02) {
         radiationBlobs.push({ x: monster.x, y: monster.y, targetX: car.x, targetY: car.y });
     }
@@ -147,7 +143,7 @@ function updateMonster() {
         blob.x += dx * 0.05;
         blob.y += dy * 0.05;
 
-        if (Math.hypot(blob.x - car.x, blob.y - car.y) < 22) {
+        if (Math.hypot(blob.x - car.x, blob.y - car.y) < 20) {
             if (car.repair > 0) car.repair -= 5;
             document.getElementById("repair-progress").innerText = car.repair + "%";
             radiationBlobs.splice(index, 1);
@@ -155,65 +151,120 @@ function updateMonster() {
     });
 }
 
-// Game Rendering Loop
+// Rendering Loop with Y-Sorting & Dynamic Horror Jumpscare Effect on Meme Face
 function gameLoop() {
     if (isGameOver) return;
 
-    ctx.fillStyle = "#050a05";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Trees
-    ctx.fillStyle = "#0d1a0d";
+    let renderQueue = [];
+
     trees.forEach(t => {
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, 16, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "#1b331b";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        renderQueue.push({ type: 'tree', y: t.y, x: t.x });
     });
 
-    // Car
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = car.repair >= 100 ? "#00ff00" : "#ff3300";
-    ctx.fillStyle = car.repair >= 100 ? "#114411" : "#441111";
-    ctx.fillRect(car.x - 26, car.y - 13, 52, 26);
-    ctx.strokeStyle = car.repair >= 100 ? "#00ff00" : "#ff3300";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(car.x - 26, car.y - 13, 52, 26);
-    ctx.shadowBlur = 0;
+    renderQueue.push({ type: 'car', y: car.y, x: car.x });
 
-    // Squad
-    squad.forEach(member => {
-        if (member.active) {
-            ctx.fillStyle = member.color;
-            ctx.beginPath();
-            ctx.arc(member.x, member.y, 10, 0, Math.PI * 2);
-            ctx.fill();
-            if (member.id === squad[controlledIndex].id) {
-                ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
+    squad.forEach(m => {
+        if (m.active) {
+            renderQueue.push({ type: 'player', y: m.y, x: m.x, color: m.color, id: m.id });
         }
     });
 
-    // Monster
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = "#9900ff";
-    ctx.fillStyle = "#5500aa";
-    ctx.beginPath();
-    ctx.arc(monster.x, monster.y, 15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+    renderQueue.push({ type: 'monster', y: monster.y, x: monster.x });
 
-    // Radiation Blobs
+    renderQueue.sort((a, b) => a.y - b.y);
+
+    renderQueue.forEach(obj => {
+        if (obj.type === 'tree') {
+            ctx.fillStyle = "rgba(0,0,0,0.4)";
+            ctx.beginPath();
+            ctx.ellipse(obj.x, obj.y + 6, 12, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#0e1f0e";
+            ctx.beginPath();
+            ctx.arc(obj.x, obj.y, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#1b381b";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        } 
+        else if (obj.type === 'car') {
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fillRect(obj.x - 24, obj.y - 6, 48, 14);
+
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = car.repair >= 100 ? "#00ff00" : "#ff3300";
+            ctx.fillStyle = car.repair >= 100 ? "#0f3d0f" : "#3d0f0f";
+            ctx.fillRect(obj.x - 22, obj.y - 12, 44, 20);
+            ctx.strokeStyle = car.repair >= 100 ? "#00ff00" : "#ff3300";
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(obj.x - 22, obj.y - 12, 44, 20);
+            ctx.shadowBlur = 0;
+        } 
+        else if (obj.type === 'player') {
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.beginPath();
+            ctx.ellipse(obj.x, obj.y + 4, 8, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Check distance to monster to trigger scary horror red flash / glitch on the face
+            let distToMonster = Math.hypot(obj.x - monster.x, obj.y - monster.y);
+            let isScared = distToMonster < 90;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(obj.x, obj.y, 14, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+
+            if (isScared) {
+                // Horror jump-scare tint (Red glowing eerie effect)
+                ctx.fillStyle = "#ff0033";
+                ctx.fillRect(obj.x - 14, obj.y - 14, 28, 28);
+            }
+
+            // Draw user's meme photo cropped circularly as the character face
+            if (playerImg.complete && playerImg.naturalWidth !== 0) {
+                ctx.drawImage(playerImg, obj.x - 14, obj.y - 14, 28, 28);
+            } else {
+                ctx.fillStyle = obj.color;
+                ctx.fillRect(obj.x - 10, obj.y - 10, 20, 20);
+            }
+            ctx.restore();
+
+            // Ring around active player
+            if (obj.id === squad[controlledIndex].id) {
+                ctx.strokeStyle = isScared ? "#ff0000" : "#ffffff";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(obj.x, obj.y, 16, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        } 
+        else if (obj.type === 'monster') {
+            ctx.fillStyle = "rgba(0,0,0,0.6)";
+            ctx.beginPath();
+            ctx.ellipse(obj.x, obj.y + 5, 8, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = "#9900ff";
+            ctx.fillStyle = "#8800cc";
+            ctx.beginPath();
+            ctx.arc(obj.x, obj.y, 9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    });
+
     ctx.shadowBlur = 8;
     ctx.shadowColor = "#00ffff";
     ctx.fillStyle = "#00ffff";
     radiationBlobs.forEach(blob => {
         ctx.beginPath();
-        ctx.arc(blob.x, blob.y, 5, 0, Math.PI * 2);
+        ctx.arc(blob.x, blob.y, 4, 0, Math.PI * 2);
         ctx.fill();
     });
     ctx.shadowBlur = 0;
@@ -232,7 +283,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Highway Escape & Sad Ending
 function triggerHighwayEscape() {
     isGameOver = true;
     setTimeout(() => {
