@@ -2,42 +2,212 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SURVIVE_THE_DAWN - True 3D</title>
+
+    <!-- Mobile / Touchscreen -->
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Survive Before Dawn</title>
+
+    <!-- Game Style -->
     <link rel="stylesheet" href="style.css">
-    <!-- Three.js CDN for True 3D graphics -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
+
 <body>
 
-    <div id="game-container">
-        <!-- UI Header -->
-        <div id="ui-hud">
-            <div>Time: <span id="time-display">02:00 AM</span></div>
-            <div>Car Repair: <span id="repair-progress">0%</span></div>
-            <div>Squad Alive: <span id="squad-status">5 / 5</span></div>
-        </div>
+    <!-- ================= GAME SCREEN ================= -->
+    <div id="game">
 
-        <!-- 3D Viewport Container -->
-        <div id="canvas-container"></div>
-
-        <!-- Bottom Controls Bar -->
-        <div id="controls-bar">
-            <div style="font-size: 11px; color: #888;">👆 Drag to move Meme Boss in 3D</div>
-            <div style="display: flex; gap: 6px;">
-                <button id="switch-btn" onclick="switchCharacter()">🔄 SWITCH</button>
-                <button id="action-btn" onclick="performAction()">🛠️ FIX CAR</button>
+        <!-- Loading Screen -->
+        <div id="loadingScreen">
+            <div class="loadingTitle">SURVIVE BEFORE DAWN</div>
+            <div class="loadingText">Loading nightmare...</div>
+            <div class="loadingBar">
+                <div id="loadingProgress"></div>
             </div>
         </div>
+
+        <!-- HUD -->
+        <div id="hud">
+
+            <!-- Top Left -->
+            <div id="playerInfo">
+                <div id="currentPlayer">PLAYER 1</div>
+                <div id="healthContainer">
+                    <div id="healthBar"></div>
+                </div>
+            </div>
+
+            <!-- Mission -->
+            <div id="mission">
+                <div class="missionTitle">MISSION</div>
+                <div id="missionText">
+                    Repair the car before dawn
+                </div>
+                <div id="partsCounter">
+                    Parts: <span id="partsFound">0</span> / 8
+                </div>
+            </div>
+
+            <!-- Time / Radiation -->
+            <div id="timeInfo">
+                <div id="timeOfDay">NIGHT</div>
+                <div id="timeCounter">00:00</div>
+
+                <div class="radiationLabel">
+                    RADIATION
+                </div>
+
+                <div id="radiationContainer">
+                    <div id="radiationBar"></div>
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- ================= TOUCH CONTROLS ================= -->
+
+        <div id="touchControls">
+
+            <!-- Virtual Joystick -->
+            <div id="joystickArea">
+                <div id="joystickBase">
+                    <div id="joystickKnob"></div>
+                </div>
+            </div>
+
+            <!-- Right Side Buttons -->
+            <div id="actionButtons">
+
+                <button id="interactButton">
+                    INTERACT
+                </button>
+
+                <button id="sprintButton">
+                    RUN
+                </button>
+
+                <button id="switchButton">
+                    SWITCH
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ================= CHARACTER SWITCH MENU ================= -->
+
+        <div id="characterMenu">
+
+            <div class="characterMenuTitle">
+                SELECT SURVIVOR
+            </div>
+
+            <button class="characterButton" data-character="0">
+                <span>PLAYER 1</span>
+                <small>Main Character</small>
+            </button>
+
+            <button class="characterButton" data-character="1">
+                <span>NPC 1</span>
+                <small>Survivor</small>
+            </button>
+
+            <button class="characterButton" data-character="2">
+                <span>NPC 2</span>
+                <small>Survivor</small>
+            </button>
+
+            <button class="characterButton" data-character="3">
+                <span>NPC 3</span>
+                <small>Survivor</small>
+            </button>
+
+            <button class="characterButton" data-character="4">
+                <span>NPC 4</span>
+                <small>Survivor</small>
+            </button>
+
+            <button id="closeCharacterMenu">
+                CLOSE
+            </button>
+
+        </div>
+
+
+        <!-- ================= INTERACTION MESSAGE ================= -->
+
+        <div id="messageBox">
+            <div id="messageText"></div>
+        </div>
+
+
+        <!-- ================= CUTSCENE ================= -->
+
+        <div id="cutscene">
+
+            <div id="cutsceneText"></div>
+
+            <button id="skipCutscene">
+                SKIP
+            </button>
+
+        </div>
+
+
+        <!-- ================= GAME OVER ================= -->
+
+        <div id="gameOver">
+
+            <div class="gameOverTitle">
+                GAME OVER
+            </div>
+
+            <div id="gameOverReason">
+                Radiation level critical.
+            </div>
+
+            <button id="restartButton">
+                TRY AGAIN
+            </button>
+
+        </div>
+
+
+        <!-- ================= ENDING ================= -->
+
+        <div id="endingScreen">
+
+            <div class="endingTitle">
+                YOU SURVIVED THE DAWN
+            </div>
+
+            <div class="endingText">
+                But you can't escape your fate...
+            </div>
+
+            <div class="endingThanks">
+                THANKS FOR PLAYING
+            </div>
+
+            <button id="endingRestart">
+                PLAY AGAIN
+            </button>
+
+        </div>
+
     </div>
 
-    <!-- Ending Screen Overlay -->
-    <div id="ending-screen" class="hidden">
-        <h1 id="ending-title">THE END</h1>
-        <p id="ending-msg"></p>
-        <p style="color: #00ffcc; font-weight: bold; margin-top: 15px;">Thanks for Playing, Boss!</p>
-    </div>
 
-    <script src="script.js"></script>
+    <!-- Three.js -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js">
+    </script>
+
+    <!-- Main Game Script -->
+    <script type="module" src="script.js"></script>
+
 </body>
 </html>
