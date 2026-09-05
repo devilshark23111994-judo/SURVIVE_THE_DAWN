@@ -2133,3 +2133,49 @@ function onWindowResize() {
         window.innerHeight
     );
 }
+// ===============================
+// START GAME
+// ===============================
+
+const loadingScreen =
+  document.getElementById("loadingScreen");
+
+setTimeout(() => {
+  if (loadingScreen) {
+    loadingScreen.style.display = "none";
+  }
+}, 1500);
+
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const delta = Math.min(
+    clock.getDelta(),
+    0.05
+  );
+
+  moveCurrentPlayer(delta);
+
+  blueObject.rotation.y += delta;
+  blueObject.rotation.x += delta * 0.5;
+
+  camera.position.x =
+    playerMeshes[game.currentPlayer].position.x;
+
+  camera.position.z =
+    playerMeshes[game.currentPlayer].position.z + 12;
+
+  camera.position.y = 6;
+
+  camera.lookAt(
+    playerMeshes[game.currentPlayer].position.x,
+    1.5,
+    playerMeshes[game.currentPlayer].position.z
+  );
+
+  renderer.render(scene, camera);
+}
+
+animate();
