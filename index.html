@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SURVIVE_THE_DAWN - Meme Horror</title>
+    <title>SURVIVE_THE_DAWN - True 3D</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Three.js CDN for True 3D graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -16,12 +18,12 @@
             <div>Squad Alive: <span id="squad-status">5 / 5</span></div>
         </div>
 
-        <!-- Game Canvas (2.5D Perspective with Meme Character) -->
-        <canvas id="gameCanvas" width="800" height="250"></canvas>
+        <!-- 3D Viewport Container -->
+        <div id="canvas-container"></div>
 
         <!-- Bottom Controls Bar -->
         <div id="controls-bar">
-            <div style="font-size: 11px; color: #888;">👆 Drag to move Meme Boss</div>
+            <div style="font-size: 11px; color: #888;">👆 Drag to move Meme Boss in 3D</div>
             <div style="display: flex; gap: 6px;">
                 <button id="switch-btn" onclick="switchCharacter()">🔄 SWITCH</button>
                 <button id="action-btn" onclick="performAction()">🛠️ FIX CAR</button>
